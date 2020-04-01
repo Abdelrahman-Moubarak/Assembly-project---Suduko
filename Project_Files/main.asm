@@ -14,7 +14,7 @@ main PROC
 	call ReadMyFile
 	mov esi , OFFSET Board
 	mov edx , OFFSET ArrayReadFile
-	mov al , [esi+80]
+	mov al , [esi+71] ; helloo
 	call WriteChar
 	exit
 main ENDP
