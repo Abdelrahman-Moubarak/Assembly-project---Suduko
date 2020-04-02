@@ -14,6 +14,7 @@ CellIndexFinal dword ?
 wrongrowcol byte "Out Of Range Index!",0
 Answer byte ?
 Answerdword dword ?
+ColCounter dword 9
 .code
 main PROC
 	mov edx, OFFSET filename
@@ -110,14 +111,9 @@ InputAndCheck ENDP
 
 ;-------------------CalcIndex Proc
 CalcIndex Proc uses eax ebx ecx
-	mov ebx, CellRow
-	mov ecx, 8
-	RowLoop:
-	add ebx, CellRow
-	Loop RowLoop
-
-	mov CellRow, ebx
+	
 	mov eax, CellRow
+	mul ColCounter
 	add eax, CellCol
 	mov CellIndexFinal, eax
 	ret
