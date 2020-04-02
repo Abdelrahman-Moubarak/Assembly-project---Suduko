@@ -59,12 +59,10 @@ ReadMyFile PROC  USES eax ebx ecx edx esi
 	ret
 ReadMyFile ENDP
 
-InputUnsolvedBoard proc
+InputUnsolvedBoard proc uses edx ebx esi
 	mov edx, OFFSET filenameofUnsolved
 	mov ebx, OFFSET ArrayReadFile
 	mov esi, OFFSET BoardUser
-
-
 InputUnsolvedBoard ENDP
 
 ;------------------CheckIfEqual proc
@@ -111,7 +109,7 @@ InputAndCheck ENDP
 ;------------------End of CheckIfEqual proc
 
 ;-------------------CalcIndex Proc
-CalcIndex Proc uses eax
+CalcIndex Proc uses eax ebx ecx
 	mov ebx, CellRow
 	mov ecx, 8
 	RowLoop:
@@ -119,6 +117,7 @@ CalcIndex Proc uses eax
 	Loop RowLoop
 
 	mov CellRow, ebx
+	mov eax, CellRow
 	add eax, CellCol
 	mov CellIndexFinal, eax
 	ret

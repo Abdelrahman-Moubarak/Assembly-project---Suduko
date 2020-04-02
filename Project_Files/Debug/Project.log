@@ -1,2 +1,3 @@
 ﻿  Assembling main.asm...
+main.asm(67): warning A6001: no return from procedure
   Project.vcxproj -> C:\Users\Lenovo\Documents\GitHub\Assembly-project---Suduko\Project_Files\Debug\Project.exe
