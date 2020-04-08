@@ -1,0 +1,2 @@
+﻿main.obj : error LNK2026: module unsafe for SAFESEH image.
+LINK : fatal error LNK1221: a subsystem can't be inferred and must be defined
