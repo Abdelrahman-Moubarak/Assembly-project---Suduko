@@ -7,7 +7,7 @@ BUFFER_SIZE EQU 97
 ArrayReadFile byte 97 dup(?)
 ArraySaveToFile byte 97 dup(?)
 ColorArraySaveToFile Dword 81 dup(?)
-CounterArray Dword 2 dup(?)
+CounterArray Dword 3 dup(?)
 
 BoardFile_easy1 BYTE "board_easy1.txt",0
 BoardFile_easy1_Sol BYTE "board_easy1_sol.txt",0
@@ -18,9 +18,34 @@ BoardFile_easy2_Sol BYTE "board_easy2_sol.txt",0
 BoardFile_easy3 BYTE "board_easy3.txt",0
 BoardFile_easy3_Sol BYTE "board_easy3_sol.txt",0
 
+BoardFile_medium1 BYTE "board_medium1.txt",0
+BoardFile_medium1_Sol BYTE "board_medium1_sol.txt",0
+
+BoardFile_medium2 BYTE "board_medium2.txt",0
+BoardFile_medium2_Sol BYTE "board_medium2_sol.txt",0
+
+BoardFile_medium3 BYTE "board_medium3.txt",0
+BoardFile_medium3_Sol BYTE "board_medium3_sol.txt",0
+
+BoardFile_hard1 BYTE "board_hard1.txt",0
+BoardFile_hard1_Sol BYTE "board_hard1_sol.txt",0
+
+BoardFile_hard2 BYTE "board_hard2.txt",0
+BoardFile_hard2_Sol BYTE "board_hard2_sol.txt",0
+
+BoardFile_hard3 BYTE "board_hard3.txt",0
+BoardFile_hard3_Sol BYTE "board_hard3_sol.txt",0
+
+
 BoardFile_Progress byte "Progress_File.txt",0
 BoardFile_Progress_sol byte "Progress_File_sol.txt",0
+BoardFile_Progress2 byte "Progress_File2.txt",0
+BoardFile_Progress_sol2 byte "Progress_File_sol2.txt",0
+ProgressCounter Dword 2
+ProgressCounterSaver Dword ?
+
 ColorFile_Progress byte "ColorArray.txt",0
+ColorFile_Progress2 byte "ColorArray2.txt",0
 CounterFile_Progress Byte "Counters.txt",0
 
 Color_Board Dword 81 dup(white) 
@@ -29,6 +54,8 @@ Board_sol byte 81 dup(?)
 RightWrongIndexes Byte 81 dup(0)
 
 SpaceCounter Dword 0
+StartTime Dword ?
+TotalTime Dword ?
 counter1 Dword 0
 CellRow dword ?
 CellCol dword ?
@@ -38,7 +65,7 @@ Answerdword dword ?
 ColCounter dword 9
 GameState byte 0
 RightAnswerCounter Dword 0
-WrongAnswerCounter Dword 0
+WrongAnswerCounter Dword 1
 
 wrongrowcol byte "Out Of Range Index!",0
 EnterNum byte "Enter a number between 1 & 9 : ",0
@@ -54,6 +81,7 @@ WinMsg byte "You Win !",0
 RightCounterMsg byte "Number of Right answers : ",0
 WrongCounterMsg byte "Number of Wrong Answers : ",0
 StepsRemainingMsg byte "Steps Remaining To win : ",0
+TotalTimeMsg byte "Total time to complete the intire board : ",0 
 
 
 .code
@@ -71,7 +99,7 @@ ReadMyFile PROC  USES eax ebx ecx edx esi
 	mov ecx, BUFFER_SIZE
 	mov edx, ebx
 	call ReadFromFile
-	push eax
+	call closeFile
 	mov edx, ebx
 	mov ecx , BUFFER_SIZE
 	mov eax ,0
@@ -95,17 +123,13 @@ ReadMyFile PROC  USES eax ebx ecx edx esi
 			inc esi
 		cont:
 	loop CopyArray
-	pop eax
-	call closeFile
 	ret
 ReadMyFile ENDP
 
 SaveToFile PROC uses eax ebx ecx edx esi
-
+	
 	mov esi, OFFSET Board
-	mov edx,OFFSET BoardFile_Progress
 	call CreateOutputFile
-	push eax
 	mov edx , OFFSET ArraySaveToFile
 	mov ecx , BUFFER_SIZE
 	mov ebx , 0
@@ -138,14 +162,10 @@ SaveToFile PROC uses eax ebx ecx edx esi
 	mov ecx , BUFFER_SIZE
 	mov edx , OFFSET ArraySaveToFile
 	call WriteToFile
-	pop eax
-	call CloseFile
-
 
 	mov esi, OFFSET Board_sol
 	mov edx,OFFSET BoardFile_Progress_sol
 	call CreateOutputFile
-	push eax
 	mov edx , OFFSET ArraySaveToFile
 	mov ecx , BUFFER_SIZE
 	mov ebx , 0
@@ -178,13 +198,10 @@ SaveToFile PROC uses eax ebx ecx edx esi
 	mov ecx , BUFFER_SIZE
 	mov edx , OFFSET ArraySaveToFile
 	call WriteToFile
-	pop eax
-	call closeFile
 	ret
 SaveToFile ENDP
 
 ReadRightWrongArray PROC Uses eax edx ecx
-	mov edx, OFFSET ColorFile_Progress
 	call OpenInputFile
 	mov ecx , BoardSize
 	mov edx , OFFSET RightWrongIndexes
@@ -194,7 +211,6 @@ ReadRightWrongArray PROC Uses eax edx ecx
 ReadRightWrongArray ENDP
 
 SaveRightWrongArray PROC USES eax ecx edx 
-	mov edx,OFFSET ColorFile_Progress
 	call CreateOutputFile
 	mov ecx , BoardSize
 	mov edx , OFFSET RightWrongIndexes
@@ -207,13 +223,15 @@ ReadRightWrongCounters PROC USES ecx edx eax
 	mov edx, OFFSET CounterFile_Progress
 	call OpenInputFile
 	push eax
-	mov ecx , 8
+	mov ecx , 12
 	mov edx , OFFSET CounterArray
 	call ReadFromFile
 	mov eax , counterArray[0]
 	mov RightAnswerCounter , eax
 	mov eax, counterArray[4]
 	mov WrongAnswerCounter, eax
+	mov eax , CounterArray[8]
+	mov ProgressCounter , eax
 	pop eax
 	call closeFile
 	ret
@@ -224,9 +242,11 @@ SaveRightWrongCounters PROC Uses eax edx ecx
 	mov counterArray[0] , eax
 	mov eax , WrongAnswerCounter
 	mov counterArray[4] , eax
+	mov eax , ProgressCounter
+	mov counterArray[8] , eax
 	mov edx,OFFSET CounterFile_Progress
 	call CreateOutputFile
-	mov ecx , 8
+	mov ecx , 12
 	mov edx , OFFSET counterArray
 	call WriteToFile
 	call closeFile
@@ -252,6 +272,29 @@ RightWrongCheck PROC
 		 inc edx
 	loop CheckBoardSpaces
 RightWrongCheck ENDP
+
+MoveColor PROC Uses eax ebx ecx edx esi
+	mov edx , OFFSET Color_Board
+	Mov esi , OFFSET RightWrongIndexes
+	mov ecx , BoardSize
+	CopyColor:
+		mov al , [esi]
+		cmp al , "2"
+		jne If3
+		mov ebx , LightBlue
+		mov [edx] , ebx
+		jmp OffsetInc
+		If3:
+			cmp al , "3"
+			jne OffsetInc
+			mov ebx , LightRed
+			mov [edx] , ebx
+		OffsetInc:
+			inc esi
+			add edx , 4
+	loop CopyColor
+	ret
+MoveColor ENDP
 
 DrawBoard PROC uses eax ebx ecx edx esi edi
 	
@@ -457,9 +500,11 @@ InputAndCheck Proc uses eax ecx esi ebx edx
 	jz ifEqual
 	;if not equal
 	inc WrongAnswerCounter
-	call crlf
 	mov eax , lightRed
 	call SetTextColor
+	mov dl, 24
+	mov dh ,11
+	call gotoxy
 	mov edx , OFFSET WrongAnswer
 	call WriteString
 	mov eax ,lightgray
@@ -467,20 +512,28 @@ InputAndCheck Proc uses eax ecx esi ebx edx
 	mov RightWrongIndexes[esi] , "3"
 	imul esi ,4
 	mov Color_Board[esi] , lightRed
+	mov dl, 24
+	mov dh ,13
+	call gotoxy
 	call WaitMsg
 	jmp endoffn
 
 	ifEqual: ; if equal
 	inc RightAnswerCounter
 	dec SpaceCounter
+	mov dl, 24
+	mov dh ,11
+	call gotoxy
 	mov edx , OFFSET RightAnswer
-	call crlf
 	mov eax , green
 	call SetTextColor
 	call WriteString
 	call crlf
 	mov eax ,lightgray
 	call SetTextColor
+	mov dl, 24
+	mov dh ,13
+	call gotoxy
 	call WaitMsg
 	mov esi, CellIndexFinal
 	mov bl, Answer
@@ -510,16 +563,28 @@ CalcIndex ENDP
 InputRowCol PROC uses eax edx
 	
 	GetInput:
+	mov dl, 24
+	mov dh ,5
+	call gotoxy
 	mov edx , OFFSET InputCellNum 
 	call WriteString
+	mov dl, 48
+	mov dh ,5
+	call gotoxy
 	call Readdec
 	mov CellRow, eax
+	mov dl, 50
+	mov dh ,5
+	call gotoxy
 	call Readdec
 	mov CellCol, eax
 	mov eax , CellRow
 	cmp eax , 1
 	jae CheckBE9
 
+	mov dl, 24
+	mov dh ,7
+	call gotoxy
 	mov edx , OFFSET wrongrowcol
 	call WriteString
 	jmp GetInput
@@ -528,6 +593,9 @@ InputRowCol PROC uses eax edx
 	cmp eax , 9
 	jbe CheckY
 
+	mov dl, 24
+	mov dh ,7
+	call gotoxy
 	mov edx , OFFSET wrongrowcol
 	call WriteString
 	jmp GetInput
@@ -537,6 +605,9 @@ InputRowCol PROC uses eax edx
 	cmp eax , 1
 	jae CheckBE9Y
 
+	mov dl, 24
+	mov dh ,7
+	call gotoxy
 	mov edx , OFFSET wrongrowcol
 	call WriteString
 	jmp GetInput
@@ -545,6 +616,9 @@ InputRowCol PROC uses eax edx
 	cmp eax , 9
 	jbe InRange
 
+	mov dl, 24
+	mov dh ,7
+	call gotoxy
 	mov edx , OFFSET wrongrowcol
 	call WriteString
 	jmp GetInput
@@ -561,8 +635,14 @@ InputRowCol ENDP
 InputAns Proc uses eax edx
 	
 	GetInputNum:
+	mov dl, 24
+	mov dh ,9
+	call gotoxy
 	mov edx , OFFSET EnterNum
 	call WriteString
+	mov dl, 55
+	mov dh ,9
+	call gotoxy
 	call ReadChar
 	call WriteChar
 	cmp al , 31h
@@ -579,7 +659,7 @@ InputAns ENDP
 ;-------------------End of InputAns Proc
 
 Game PROC USES eax ebx ecx edx esi edi ebp
-	mov al,1
+	mov al,0
 	mov GameState,al
 	GetLevel:
 		call clrscr
@@ -614,20 +694,33 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		cmp eax ,1
 		jne CheckMedium
 		call RandomEasyBoard
+		call GetMseconds
+		mov StartTime , eax
 		jmp DisplayGame
 
 		CheckMedium:
 			cmp eax ,2
 			jne CheckHard
 			call RandomMediumBoard
+			call GetMseconds
+			mov StartTime , eax
 			jmp DisplayGame
 
 		CheckHard:
 			call RandomHardBoard
+			call GetMseconds
+			mov StartTime , eax
 			jmp DisplayGame
 
 
 	ContinueGame:
+
+		call ReadRightWrongCounters
+
+		mov eax , ProgressCounter
+		cmp eax , 3
+		jne GetAlternativeFiles
+
 		mov edx, OFFSET BoardFile_Progress
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board
@@ -640,14 +733,38 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		mov esi, OFFSET Board_sol
 		call ReadMyFile
 
+		mov edx,OFFSET ColorFile_Progress
 		call ReadRightWrongArray
 
-		call ReadRightWrongCounters
+		call MoveColor
 
+		jmp StartGame
 
-		jmp DisplayGame
+		GetAlternativeFiles:
+
+			mov edx, OFFSET BoardFile_Progress2
+			mov ebx, OFFSET ArrayReadFile
+			mov esi, OFFSET Board
+			call ReadMyFile
+
+			call RightWrongCheck
+		
+			mov edx, OFFSET BoardFile_Progress_sol
+			mov ebx, OFFSET ArrayReadFile
+			mov esi, OFFSET Board_sol
+			call ReadMyFile
+
+			mov edx,OFFSET ColorFile_Progress2
+			call ReadRightWrongArray
+
+			call MoveColor
+
+		StartGame:
+			call GetMseconds
+			mov StartTime , eax
 
 	DisplayGame:
+		
 		mov esi, OFFSET board
 		call DrawBoard
 		mov dl, 10
@@ -663,8 +780,15 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		call ReadDec
 		cmp eax ,2
 		je checkDFBoard
+
 		cmp eax ,3
-		je DoSave
+		jne l2
+		mov eax ,ProgressCounter
+		cmp eax , 2
+		je SaveFirstTime
+		jmp DoSave
+		
+		l2:
 		cmp eax ,1
 		jne DisplayGame
 		call InputAndCheck
@@ -676,13 +800,53 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 	CheckDFBoard:
 		call clrscr
 		call DrawFinishedBoard
+		mov dl ,26
+		mov dh ,20
+		call Gotoxy
+		mov edx , OFFSET StepsRemainingMsg
+		call WriteString
+		mov eax , LightBlue
+		call SetTextColor
+		mov eax , SpaceCounter
+		call WriteDec
+		mov eax , White
+		call SetTextColor
+		mov dl ,26
+		mov dh ,22
+		call Gotoxy
+		call waitMsg
+		jmp EndGame
+
+	SaveFirstTime:
+		inc ProgressCounter
+		mov eax , ProgressCounter
+		mov ProgressCounterSaver , eax
+		mov edx,OFFSET BoardFile_Progress
+		call SaveToFile
+		call SaveRightWrongCounters
+		mov edx,OFFSET ColorFile_Progress
+		call SaveRightWrongArray
 		jmp EndGame
 
 	DoSave:
-		call clrscr
+		mov eax , ProgressCounter
+		cmp eax , 3
+		jne SaveToAlternativeFiles
+		mov edx,OFFSET BoardFile_Progress2
 		call SaveToFile
+		inc ProgressCounter
 		call SaveRightWrongCounters
+		mov edx,OFFSET ColorFile_Progress2
 		call SaveRightWrongArray
+		jmp EndGame
+
+		SaveToAlternativeFiles:
+			mov edx,OFFSET BoardFile_Progress
+			call SaveToFile
+			mov edx,OFFSET ColorFile_Progress
+			call SaveRightWrongArray
+			dec ProgressCounter
+			call SaveRightWrongCounters
 		jmp EndGame
 
 	YouWin:
@@ -703,12 +867,16 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 
 	EndGame:
 		call clrscr
+		call GetMseconds 
+		sub  eax,StartTime
+		mov TotalTime , eax
+
 		mov dl ,26
 		mov dh ,5
 		call Gotoxy
 		mov edx , OFFSET RightCounterMsg
 		call WriteString
-		mov eax , LightGreen 
+		mov eax , Green 
 		call SetTextColor
 		mov eax , RightAnswerCounter
 		call WriteDec
@@ -724,6 +892,7 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		mov eax , LightRed
 		call SetTextColor
 		mov eax , WrongAnswerCounter
+		dec eax
 		call WriteDec
 
 		mov eax , White
@@ -732,16 +901,19 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		mov dl ,26
 		mov dh ,9
 		call Gotoxy
-		mov edx , OFFSET StepsRemainingMsg
+		mov edx , OFFSET TotalTimeMsg
 		call WriteString
-		mov eax , LightBlue
+		mov eax , yellow
 		call SetTextColor
-		mov eax , SpaceCounter
+		mov edx , 0
+		mov eax , TotalTime
+		mov ebx , 1000
+		div ebx
 		call WriteDec
 
 		mov eax , White
 		call SetTextColor
-
+		
 		mov dl ,18
 		mov dh ,20
 		call Gotoxy
@@ -751,7 +923,7 @@ Game ENDP
 
 RandomEasyBoard PROC Uses eax edx ebx esi
 	call Randomize
-	mov eax, 1
+	mov eax, 3
 	call RandomRange
 	cmp eax , 0
 	jne CheckotherE1
@@ -803,12 +975,12 @@ RandomMediumBoard PROC Uses eax edx ebx esi
 	call RandomRange
 	cmp eax , 0
 	jne CheckotherM1
-	mov edx, OFFSET BoardFile_easy1
+	mov edx, OFFSET BoardFile_medium1
 	mov ebx, OFFSET ArrayReadFile
 	mov esi, OFFSET Board
 	call ReadMyFile
 	
-	mov edx, OFFSET BoardFile_easy1_sol
+	mov edx, OFFSET BoardFile_medium1_sol
 	mov ebx, OFFSET ArrayReadFile
 	mov esi, OFFSET Board_sol
 	call ReadMyFile
@@ -817,24 +989,24 @@ RandomMediumBoard PROC Uses eax edx ebx esi
 	CheckotherM1:
 		cmp eax , 1
 		jne CheckotherM2
-		mov edx, OFFSET BoardFile_easy2
+		mov edx, OFFSET BoardFile_medium2
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board
 		call ReadMyFile
 
-		mov edx, OFFSET BoardFile_easy2_sol
+		mov edx, OFFSET BoardFile_medium2_sol
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board_sol
 		call ReadMyFile
 		jmp cont1
 
 	CheckotherM2:
-		mov edx, OFFSET BoardFile_easy3
+		mov edx, OFFSET BoardFile_medium3
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board
 		call ReadMyFile
 
-		mov edx, OFFSET BoardFile_easy3_sol
+		mov edx, OFFSET BoardFile_medium3_sol
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board_sol
 		call ReadMyFile
@@ -851,12 +1023,12 @@ RandomHardBoard PROC Uses eax edx ebx esi
 	call RandomRange
 	cmp eax , 0
 	jne CheckotherH1
-	mov edx, OFFSET BoardFile_easy1
+	mov edx, OFFSET BoardFile_hard1
 	mov ebx, OFFSET ArrayReadFile
 	mov esi, OFFSET Board
 	call ReadMyFile
 	
-	mov edx, OFFSET BoardFile_easy1_sol
+	mov edx, OFFSET BoardFile_hard1_sol
 	mov ebx, OFFSET ArrayReadFile
 	mov esi, OFFSET Board_sol
 	call ReadMyFile
@@ -865,24 +1037,24 @@ RandomHardBoard PROC Uses eax edx ebx esi
 	CheckotherH1:
 		cmp eax , 1
 		jne CheckotherH2
-		mov edx, OFFSET BoardFile_easy2
+		mov edx, OFFSET BoardFile_hard2
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board
 		call ReadMyFile
 
-		mov edx, OFFSET BoardFile_easy2_sol
+		mov edx, OFFSET BoardFile_hard2_sol
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board_sol
 		call ReadMyFile
 		jmp cont2
 
 	CheckotherH2:
-		mov edx, OFFSET BoardFile_easy3
+		mov edx, OFFSET BoardFile_hard3
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board
 		call ReadMyFile
 
-		mov edx, OFFSET BoardFile_easy3_sol
+		mov edx, OFFSET BoardFile_hard3_sol
 		mov ebx, OFFSET ArrayReadFile
 		mov esi, OFFSET Board_sol
 		call ReadMyFile
