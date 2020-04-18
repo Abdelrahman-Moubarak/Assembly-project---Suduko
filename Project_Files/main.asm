@@ -75,21 +75,63 @@ RightAnswer byte "Right Answer :)",0
 GameLevelMsg1 byte "1.Easy",0
 GameLevelMsg2 byte "2.Medium",0
 GameLevelMsg3 byte "3.Hard",0
-GameEnterLevel byte "Enter your choice : ",0
+ChoiceMsg byte "Enter your choice : ",0
 PlayMsg byte "1.Edit a cell     2.Print finished board     3.Save & Exit",0	
 WinMsg byte "You Win !",0
 RightCounterMsg byte "Number of Right answers : ",0
 WrongCounterMsg byte "Number of Wrong Answers : ",0
 StepsRemainingMsg byte "Steps Remaining To win : ",0
 TotalTimeMsg byte "Total time to complete the intire board : ",0 
+StartNewMsg byte "1.New Game ",0
+ContinueMsg byte "2.Continue ",0
+ExitMsg byte "3.Exit ",0
+Thanks byte "Thanks For Playing.... ",0
 
 
 .code
 
 main PROC
-	StartGame:
-		call Game
-	
+	MainLabel:
+		mov dl , 35
+	mov dh , 7
+	call Gotoxy
+	mov edx, OFFSET StartNewMsg
+	call writeString
+
+	mov dl , 35
+	mov dh , 10
+	call Gotoxy
+	mov edx, OFFSET ContinueMsg
+	call writeString
+
+	mov dl , 35
+	mov dh , 13
+	call Gotoxy
+	mov edx, OFFSET ExitMsg
+	call writeString
+
+	mov dl , 29
+	mov dh , 16
+	call Gotoxy
+	mov edx, OFFSET ChoiceMsg
+	call writeString
+		call ReadDec
+		cmp eax , 3
+		je ExitMyGame
+		dec eax
+		call game 
+		exit
+	ExitMyGame:
+		call clrscr
+		mov dl , 29
+		mov dh , 10
+		call Gotoxy
+		mov edx, OFFSET Thanks
+		call WriteString
+		mov dl , 29
+		mov dh , 20
+		call Gotoxy
+		call WaitMsg
 	exit
 main ENDP
 
@@ -659,7 +701,6 @@ InputAns ENDP
 ;-------------------End of InputAns Proc
 
 Game PROC USES eax ebx ecx edx esi edi ebp
-	mov al,0
 	mov GameState,al
 	GetLevel:
 		call clrscr
@@ -687,7 +728,7 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		mov dl, 29
 		mov dh, 16
 		call gotoxy
-		mov edx , OFFSET GameEnterLevel
+		mov edx , OFFSET ChoiceMsg
 		call WriteString
 		call ReadDec
 
@@ -775,7 +816,7 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		mov dl, 29
 		mov dh, 24
 		call gotoxy
-		mov edx, OFFSET GameEnterLevel
+		mov edx, OFFSET ChoiceMsg
 		call writeString
 		call ReadDec
 		cmp eax ,2
@@ -917,6 +958,7 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		mov dl ,18
 		mov dh ,20
 		call Gotoxy
+		call WaitMsg
 		
 	ret
 Game ENDP
