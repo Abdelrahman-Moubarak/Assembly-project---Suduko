@@ -86,7 +86,7 @@ StartNewMsg byte "1.New Game ",0
 ContinueMsg byte "2.Continue ",0
 ExitMsg byte "3.Exit ",0
 Thanks byte "Thanks For Playing.... ",0
-
+filehandle handle ?
 
 .code
 
@@ -120,7 +120,9 @@ main PROC
 		je ExitMyGame
 		dec eax
 		call game 
-		exit
+		call clrscr
+		jmp MainLabel
+;		exit
 	ExitMyGame:
 		call clrscr
 		mov dl , 29
@@ -172,6 +174,7 @@ SaveToFile PROC uses eax ebx ecx edx esi
 	
 	mov esi, OFFSET Board
 	call CreateOutputFile
+	mov filehandle,eax
 	mov edx , OFFSET ArraySaveToFile
 	mov ecx , BUFFER_SIZE
 	mov ebx , 0
@@ -240,6 +243,8 @@ SaveToFile PROC uses eax ebx ecx edx esi
 	mov ecx , BUFFER_SIZE
 	mov edx , OFFSET ArraySaveToFile
 	call WriteToFile
+	mov eax,filehandle
+	call closefile
 	ret
 SaveToFile ENDP
 
@@ -248,15 +253,18 @@ ReadRightWrongArray PROC Uses eax edx ecx
 	mov ecx , BoardSize
 	mov edx , OFFSET RightWrongIndexes
 	call ReadFromFile
+	
 	call closeFile
 	ret
 ReadRightWrongArray ENDP
 
 SaveRightWrongArray PROC USES eax ecx edx 
 	call CreateOutputFile
+	mov filehandle,eax
 	mov ecx , BoardSize
 	mov edx , OFFSET RightWrongIndexes
 	call WriteToFile
+	mov eax,filehandle
 	call closeFile
 	ret
 SaveRightWrongArray ENDP
@@ -288,10 +296,13 @@ SaveRightWrongCounters PROC Uses eax edx ecx
 	mov counterArray[8] , eax
 	mov edx,OFFSET CounterFile_Progress
 	call CreateOutputFile
+	mov filehandle,eax
 	mov ecx , 12
 	mov edx , OFFSET counterArray
 	call WriteToFile
+	mov eax,filehandle
 	call closeFile
+
 	ret
 SaveRightWrongCounters ENDP
 
@@ -863,10 +874,14 @@ Game PROC USES eax ebx ecx edx esi edi ebp
 		mov eax , ProgressCounter
 		mov ProgressCounterSaver , eax
 		mov edx,OFFSET BoardFile_Progress
+		
 		call SaveToFile
+		
 		call SaveRightWrongCounters
 		mov edx,OFFSET ColorFile_Progress
+		
 		call SaveRightWrongArray
+		
 		jmp EndGame
 
 	DoSave:
